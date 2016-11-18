@@ -3,5 +3,5 @@ project(pacp_stress)
 
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -std=c11")
 
-set(SOURCE_FILES main.c main.c main.h)
+set(SOURCE_FILES main.c main.h sds.c sds.h sdsalloc.h)
 add_executable(pacp_stress ${SOURCE_FILES})
