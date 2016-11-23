@@ -19,14 +19,9 @@ expect "DBAUDIT*" {
         expect "sh*" {
             send "sudo su root -\r"
                 expect -re ".*#" {
-                    send "cat /proc/net/pf_ring/5244-eth0.1|grep -i 'Tot Packets'|awk -F: '{print \$2}'|sed 's/ //g' \r"
+                    send "cat /proc/net/pf_ring/3653-eth0.1|grep -i -A 2 -B 2 'Tot Packets' \r"
                     expect -re ".*#" {
-                    regexp {(\n)(\d.*)} "$expect_out(buffer)" matched
-                    #puts stdout  "matched : \ $matched \n"
-                    set result $matched
                     }
-                    puts stdout  "result: $result"
-                    #return $result
                     #interact
                 }
             }

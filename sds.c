@@ -1100,6 +1100,32 @@ void *sds_malloc(size_t size) { return s_malloc(size); }
 void *sds_realloc(void *ptr, size_t size) { return s_realloc(ptr,size); }
 void sds_free(void *ptr) { s_free(ptr); }
 
+
+/**
+ * 从字符串里获取到数字
+ */
+int get_digit(sds str) {
+    char errbuf[1024];
+    char match[100];
+    regex_t reg;
+    int err = 10;
+    size_t  nm = 10;
+    regmatch_t pmatch[nm];
+    char *pattern = ":[0-9]{0,9}";
+
+    if(regcomp(&reg,pattern,REG_EXTENDED) < 0){
+        regerror(err,&reg,errbuf,sizeof(errbuf));
+        printf("err:%s\n",errbuf);
+    }
+
+    err = regexec(&reg,str,nm,pmatch,0);
+
+    if(err != REG_NOMATCH) {
+        sdsrange(str, pmatch[0].rm_eo, sdslen(str));
+    }
+    return atoi(str);
+}
+
 #if defined(SDS_TEST_MAIN)
 #include <stdio.h>
 #include "testhelp.h"

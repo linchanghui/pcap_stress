@@ -38,6 +38,8 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <regex.h>
+
 
 typedef char *sds;
 
@@ -265,6 +267,7 @@ void *sdsAllocPtr(sds s);
 void *sds_malloc(size_t size);
 void *sds_realloc(void *ptr, size_t size);
 void sds_free(void *ptr);
+int get_digit(sds str);
 
 #ifdef REDIS_TEST
 int sdsTest(int argc, char *argv[]);
