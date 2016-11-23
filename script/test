@@ -1,0 +1,9 @@
+set timeout 20
+
+spawn sh -c {uname}
+expect  "Linux" {
+send "cat test.txt | grep -i 'Tot Pkt Lost'|awk -F: '{print \$2}'|sed 's/ //g' \r"
+
+expect -re ".*#"
+puts stdout  "no match: \ $expect_out(buffer) haha \n"
+}
