@@ -2,22 +2,21 @@
 // Created by linchanghui on 11/18/16.
 //
 
+#include <sys/time.h>
+#include <time.h>
 #include "main.h"
 
 
 
 #define Tot_Packets 208
 
-bool startwith(const char *pre, const char *str)
-{
-    return strncmp(pre, str, strlen(pre)) == 0;
-}
 /* just get lastest info */
-int _system(const char * cmd, char *pRetMsg, int msg_len, int pre)
+int _system(const char * cmd, sds* pRetMsg)
 {
     FILE * fp;
     char * p = NULL;
     int res = -1;
+    int msg_len = 128;
     if (cmd == NULL || pRetMsg == NULL || msg_len < 0)
     {
         printf("Param Error!\n");
@@ -30,41 +29,12 @@ int _system(const char * cmd, char *pRetMsg, int msg_len, int pre)
     }
     else
     {
-        memset(pRetMsg, 0, msg_len);
+        char ret_msg[128] = {0};
+        memset(ret_msg, 0, msg_len);
         //get lastest result
-        while(fgets(pRetMsg, msg_len, fp) != NULL)
+        while(fgets(ret_msg, msg_len, fp) != NULL)
         {
-            /*
-             * 在这里把几个需要记录的字段记录下来
-             * Msg:Tot Packets        : 3939813
-             * Msg:Tot Pkt Lost       : 0
-             * Msg:Tot Insert         : 3939813
-             */
-
-            sds str = sdsnew(pRetMsg);
-            if (startwith("Tot Packets", str)) {
-                if (pre) {
-                    tot_packets_pre = get_digit(str);
-                } else {
-                    tot_packets_aft = get_digit(str);
-                }
-                printf("Msg:%s",str); //print all info
-            } else if(startwith("Tot Pkt Lost", str)) {
-                if (pre) {
-                    tot_pkt_lost_pre = get_digit(str);
-                } else {
-                    tot_pkt_lost_aft = get_digit(str);
-                }
-                printf("Msg:%s",str); //print all info
-            } else if(startwith("Tot Insert", str)) {
-                if (pre) {
-                    tot_insert_pre = get_digit(str);
-                } else {
-                    tot_insert_aft = get_digit(str);
-                }
-                printf("Msg:%s",str); //print all info
-            }
-            sdsfree(str);
+            *pRetMsg = sdscat(*pRetMsg, ret_msg);
         }
 
         if ( (res = pclose(fp)) == -1)
@@ -72,9 +42,23 @@ int _system(const char * cmd, char *pRetMsg, int msg_len, int pre)
             printf("close popenerror!\n");
             return -3;
         }
-        pRetMsg[strlen(pRetMsg)-1] = '\0';
         return 0;
     }
+}
+
+/**
+ * 获取pf_ring里面几个关键字段
+ */
+void get_pf_ring_infos(sds* pRetMsg) {
+    /*
+         * 在这里把几个需要记录的字段记录下来
+         * Msg:Tot Packets        : 3939813
+         * Msg:Tot Pkt Lost       : 0
+         * Msg:Tot Insert         : 3939813
+         */
+    tot_packets_pre = get_digit("(?<=Tot Packets\\s{8}:\\s{1})[0-9]{0,19}", *pRetMsg);
+
+    tot_pkt_lost_pre = get_digit("(?<=Tot Pkt Lost\\s{7}:\\s{1})[0-9]{0,19}", *pRetMsg);
 }
 
 /*
@@ -89,9 +73,10 @@ int main (int argc,char *argv[]) {
     int concurrency = 0;  /* Value for the "-c" optional argument. */
     int arg;
     char *srcip = NULL;
+    time_t start, stop;
     char *demo_pcap = "/mnt/hgfs/ubuntu_shared/pcap_test/165.pcap";
     char *default_ip = "37.76";
-    char ret_msg[128] = {0};
+    sds ret_msg = sdsnew("");
     int ret = 0;
 
 
@@ -163,22 +148,30 @@ int main (int argc,char *argv[]) {
 
     int total_incr = Tot_Packets*concurrency; //没一个pcap对应的packages个数,乘以并发数得到最后增加的packages个数
     //一开始先打印出原来的值和最后期待的值
-    _system(pf_ring_info, ret_msg, sizeof(ret_msg), 1);
+    _system(pf_ring_info, &ret_msg);
+    get_pf_ring_infos(&ret_msg);
+    ret_msg = sdsempty();
+
+    printf("Tot Packets：%d\n", tot_packets_pre);
+    printf("Tot Pkt Lost：%d\n", tot_pkt_lost_pre);
+    printf("Tot Packets expected：%d\n", tot_packets_pre + total_incr);
+    time(&start);
 
 
     for (int j = 0; j < concurrency; ++j) {
-        printf(replay_commands[j]);
+//        printf("%s\n", replay_commands[j]);
         system(replay_commands[j]);
     }
     free(replay_commands);
 
-    //运行结束后再获取一次pf_ring的值,但是这里要处理时延的问题
-    while()
-    _system(pf_ring_info, ret_msg, sizeof(ret_msg), 0);
-
-    if (tot_packets_pre + total_incr == tot_insert_aft) {
-        printf("success\n");
-    }
+    //计算所有并发执行完成所需的时间
+    do {
+        _system(get_tcpreplay_proc, &ret_msg);
+        ret_msg = sdsempty();
+        sleep(1);
+    }while (sdslen(ret_msg) != 0);
+    time(&stop);
+    printf("Finished in about %.0f seconds. \n", difftime(stop, start));
 
 
 }

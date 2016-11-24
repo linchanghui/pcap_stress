@@ -39,6 +39,7 @@
 #include "sds.h"
 #include "sdsalloc.h"
 
+
 static inline int sdsHdrSize(char type) {
     switch(type&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -1102,28 +1103,57 @@ void sds_free(void *ptr) { s_free(ptr); }
 
 
 /**
- * 从字符串里获取到数字
+ *  用pcre从字符串里获取到数字
  */
-int get_digit(sds str) {
-    char errbuf[1024];
-    char match[100];
-    regex_t reg;
-    int err = 10;
-    size_t  nm = 10;
-    regmatch_t pmatch[nm];
-    char *pattern = ":[0-9]{0,9}";
 
-    if(regcomp(&reg,pattern,REG_EXTENDED) < 0){
-        regerror(err,&reg,errbuf,sizeof(errbuf));
-        printf("err:%s\n",errbuf);
+int get_digit(const char *pattern, sds str) {
+    int ovector[OVECCOUNT];
+    pcre *re;
+    const char *error;
+
+    int erroffset;
+    int rc;
+
+
+    re = pcre_compile(
+            pattern,              /* the pattern */
+            0,                    /* default options */
+            &error,               /* for error message */
+            &erroffset,           /* for error offset */
+            NULL);                /* use default character tables */
+    if (re == NULL)
+    {
+        printf("PCRE compilation failed at offset %d: %s\n", erroffset, error);
+        return 1;
     }
 
-    err = regexec(&reg,str,nm,pmatch,0);
+    rc = pcre_exec(
+            re,                   /* the compiled pattern */
+            NULL,                 /* no extra data - we didn't study the pattern */
+            str,              /* the subject string */
+            (int)strlen(str),       /* the length of the subject */
+            0,                    /* start at offset 0 in the subject */
+            0,                    /* default options */
+            ovector,              /* output vector for substring information */
+            OVECCOUNT);           /* number of elements in the output vector */
 
-    if(err != REG_NOMATCH) {
-        sdsrange(str, pmatch[0].rm_eo, sdslen(str));
+    if (rc < 0)
+    {
+        switch(rc)
+        {
+            case PCRE_ERROR_NOMATCH: printf("No match\n"); break;
+                /*
+                Handle other special cases if you like
+                */
+            default: printf("Matching error %d\n", rc); break;
+        }
+        pcre_free(re);     /* Release memory used for the compiled pattern */
+        return 1;
     }
-    return atoi(str);
+
+    sds tmp = sdsnew(str);
+    sdsrange(tmp, ovector[0], ovector[1]);
+    return atoi(tmp);
 }
 
 #if defined(SDS_TEST_MAIN)
