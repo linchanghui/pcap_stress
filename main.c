@@ -82,7 +82,7 @@ int main (int argc,char *argv[]) {
 
 
 
-    while ((arg = getopt (argc, argv, "c:n:s:p:pd:")) != -1) {
+    while ((arg = getopt (argc, argv, "c:n:s:p:d:")) != -1) {
         switch (arg) {
             case 'c':
                 concurrency = atoi(optarg);
@@ -96,7 +96,7 @@ int main (int argc,char *argv[]) {
             case 'p':
                 demo_pcap = optarg;
                 break;
-            case 'pd':
+            case 'd':
                 default_pcap_dir = optarg;
                 break;
             case '?':
@@ -117,8 +117,8 @@ int main (int argc,char *argv[]) {
                 else if(optopt == 'p'){
                     fprintf(stderr, "-p requires an argument.\n");
                 }
-                else if(optopt == 'pd'){
-                    fprintf(stderr, "-pd requires an argument.\n");
+                else if(optopt == 'd'){
+                    fprintf(stderr, "-d requires an argument.\n");
                 }
                 else{
                     fprintf(stderr, "Unknown flag '%c'.\n", optopt);
