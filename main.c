@@ -75,13 +75,14 @@ int main (int argc,char *argv[]) {
     char *srcip = NULL;
     time_t start, stop;
     char *demo_pcap = "/mnt/hgfs/ubuntu_shared/pcap_test/165.pcap";
+    char *default_pcap_dir = "/mnt/hgfs/ubuntu_shared/pcap_test";
     char *default_ip = "37.76";
     sds ret_msg = sdsnew("");
     int ret = 0;
 
 
 
-    while ((arg = getopt (argc, argv, "c:n:s:")) != -1) {
+    while ((arg = getopt (argc, argv, "c:n:s:p:pd:")) != -1) {
         switch (arg) {
             case 'c':
                 concurrency = atoi(optarg);
@@ -91,6 +92,12 @@ int main (int argc,char *argv[]) {
                 break;
             case 's':
                 srcip = optarg;
+                break;
+            case 'p':
+                demo_pcap = optarg;
+                break;
+            case 'pd':
+                default_pcap_dir = optarg;
                 break;
             case '?':
                 // Encountered an unknown or improperly formatted flag,
@@ -106,6 +113,12 @@ int main (int argc,char *argv[]) {
                 }
                 else if(optopt == 's'){
                     fprintf(stderr, "-s requires an argument.\n");
+                }
+                else if(optopt == 'p'){
+                    fprintf(stderr, "-p requires an argument.\n");
+                }
+                else if(optopt == 'pd'){
+                    fprintf(stderr, "-pd requires an argument.\n");
                 }
                 else{
                     fprintf(stderr, "Unknown flag '%c'.\n", optopt);
@@ -129,19 +142,22 @@ int main (int argc,char *argv[]) {
         sds filename = sdscatprintf(sdsempty(), "%d_%dto165.pcap", network_segment, ip);
         rewrite_command = sdscatprintf(
                 sdsempty(),
-                "userid root tcprewrite --srcipmap=192.168.%s/32:192.168.%d.%d/32 --dstipmap=192.168.%s/32:192.168.%d.%d/32 --infile=/mnt/hgfs/ubuntu_shared/pcap_test/165.pcap --outfile=/mnt/hgfs/ubuntu_shared/pcap_test/%s",
+                "userid root tcprewrite --srcipmap=192.168.%s/32:192.168.%d.%d/32 --dstipmap=192.168.%s/32:192.168.%d.%d/32 --infile=%s --outfile=%s/%s",
                 srcip == NULL?default_ip:srcip,
                 network_segment,
                 ip,
                 srcip == NULL?default_ip:srcip,
                 network_segment,
                 ip,
+                demo_pcap,
+                default_pcap_dir,
                 filename);
         system(rewrite_command);
         //这里不用字符串拼接，改成存入数组，后面用for循环去做
         replay_commands[i-1] = sdscatprintf(
                 sdsempty(),
-                "userid root nohup tcpreplay -i eth0 /mnt/hgfs/ubuntu_shared/pcap_test/%s & ",
+                "userid root nohup tcpreplay -i eth0 %s/%s & ",
+                default_pcap_dir,
                 filename);
         ip++;
     }
