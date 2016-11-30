@@ -177,7 +177,7 @@ int main (int argc,char *argv[]) {
         //这里不用字符串拼接，改成存入数组，后面用for循环去做
         replay_commands[i-1] = sdscatprintf(
                 sdsempty(),
-                "userid root nohup tcpreplay -i p2p1 %s/%s & ",
+                "userid root nohup tcpreplay --enable-file-cache --preload-pcap --topspeed -i p2p1 --loop=1000 %s/%s & ",
                 default_pcap_dir,
                 filename);
         ip++;
