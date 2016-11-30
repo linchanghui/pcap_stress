@@ -77,12 +77,13 @@ int main (int argc,char *argv[]) {
     char *demo_pcap = "/mnt/hgfs/ubuntu_shared/pcap_test/165.pcap";
     char *default_pcap_dir = "/mnt/hgfs/ubuntu_shared/pcap_test";
     char *default_ip = "37.76";
+    char *default_dist_ip = "37.165";
     sds ret_msg = sdsnew("");
     int ret = 0;
 
 
 
-    while ((arg = getopt (argc, argv, "c:n:s:p:d:")) != -1) {
+    while ((arg = getopt (argc, argv, "c:n:s:p:d:f:")) != -1) {
         switch (arg) {
             case 'c':
                 concurrency = atoi(optarg);
@@ -97,6 +98,9 @@ int main (int argc,char *argv[]) {
                 demo_pcap = optarg;
                 break;
             case 'd':
+                default_dist_ip = optarg;
+                break;
+            case 'f':
                 default_pcap_dir = optarg;
                 break;
             case '?':
@@ -120,6 +124,9 @@ int main (int argc,char *argv[]) {
                 else if(optopt == 'd'){
                     fprintf(stderr, "-d requires an argument.\n");
                 }
+                else if(optopt == 'f'){
+                    fprintf(stderr, "-f requires an argument.\n");
+                }
                 else{
                     fprintf(stderr, "Unknown flag '%c'.\n", optopt);
                 }
@@ -132,6 +139,18 @@ int main (int argc,char *argv[]) {
     sds rewrite_command;
     sds *replay_commands = sds_malloc(concurrency* sizeof(sds));
     int ip = 1;
+
+//    //目的地址ip
+//    if (strcmp(default_dist_ip, "37.165")) {
+//        rewrite_command = sdscatprintf(
+//                sdsempty(),
+//                "userid root tcprewrite --srcipmap=192.168.37.165/32:192.168.%s/32 --dstipmap=192.168.37.165/32:192.168.%s/32 --infile=%s --outfile=%s",
+//                default_dist_ip,
+//                default_dist_ip,
+//                demo_pcap,
+//                demo_pcap);
+//        system(rewrite_command);
+//    }
     //开始修改pcap的网段
     for(int i = 1; i<=concurrency; i++) {
         //每一个并发一个ip
@@ -139,7 +158,9 @@ int main (int argc,char *argv[]) {
             ip = 1;
             network_segment++;
         }
-        sds filename = sdscatprintf(sdsempty(), "%d_%dto165.pcap", network_segment, ip);
+        sds filename = sdscatprintf(sdsempty(), "%d_%dto%s.pcap", network_segment, ip, default_dist_ip);
+
+        //改源ip
         rewrite_command = sdscatprintf(
                 sdsempty(),
                 "userid root tcprewrite --srcipmap=192.168.%s/32:192.168.%d.%d/32 --dstipmap=192.168.%s/32:192.168.%d.%d/32 --infile=%s --outfile=%s/%s",
@@ -156,7 +177,7 @@ int main (int argc,char *argv[]) {
         //这里不用字符串拼接，改成存入数组，后面用for循环去做
         replay_commands[i-1] = sdscatprintf(
                 sdsempty(),
-                "userid root nohup tcpreplay -i eth0 %s/%s & ",
+                "userid root nohup tcpreplay -i p2p1 %s/%s & ",
                 default_pcap_dir,
                 filename);
         ip++;
