@@ -80,7 +80,7 @@ int main (int argc,char *argv[]) {
     char *default_dist_ip = "37.165";
     char *default_speed = malloc(strlen("-t"));
     sprintf(default_speed, "-t");
-    sds ret_msg = sds_malloc(strlen("-t"));
+    sds ret_msg = sdsnew("");
     int ret = 0;
 
 
@@ -220,5 +220,7 @@ int main (int argc,char *argv[]) {
     time(&stop);
     printf("Finished in about %.0f seconds. \n", difftime(stop, start));
 
+
+    free(default_speed);
 
 }
