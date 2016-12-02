@@ -78,12 +78,14 @@ int main (int argc,char *argv[]) {
     char *default_pcap_dir = "/mnt/hgfs/ubuntu_shared/pcap_test";
     char *default_ip = "37.76";
     char *default_dist_ip = "37.165";
-    sds ret_msg = sdsnew("");
+    char *default_speed = malloc(strlen("-t"));
+    sprintf(default_speed, "-t");
+    sds ret_msg = sds_malloc(strlen("-t"));
     int ret = 0;
 
 
 
-    while ((arg = getopt (argc, argv, "c:n:s:p:d:f:")) != -1) {
+    while ((arg = getopt (argc, argv, "c:n:s:p:d:f:v:")) != -1) {
         switch (arg) {
             case 'c':
                 concurrency = atoi(optarg);
@@ -102,6 +104,10 @@ int main (int argc,char *argv[]) {
                 break;
             case 'f':
                 default_pcap_dir = optarg;
+                break;
+            case 'v':
+                realloc(default_speed, strlen("-M ")+ strlen(optarg));
+                sprintf(default_speed, "-M %s", optarg);
                 break;
             case '?':
                 // Encountered an unknown or improperly formatted flag,
@@ -126,6 +132,9 @@ int main (int argc,char *argv[]) {
                 }
                 else if(optopt == 'f'){
                     fprintf(stderr, "-f requires an argument.\n");
+                }
+                else if(optopt == 'v'){
+                    fprintf(stderr, "-v requires an argument.\n");
                 }
                 else{
                     fprintf(stderr, "Unknown flag '%c'.\n", optopt);
@@ -177,7 +186,8 @@ int main (int argc,char *argv[]) {
         //这里不用字符串拼接，改成存入数组，后面用for循环去做
         replay_commands[i-1] = sdscatprintf(
                 sdsempty(),
-                "userid root nohup tcpreplay --enable-file-cache --preload-pcap --topspeed -i p2p1 --loop=1000 %s/%s & ",
+                "userid root nohup tcpreplay %s -K --pktlen -i p2p1 --loop=1000 %s/%s & ",
+                default_speed,
                 default_pcap_dir,
                 filename);
         ip++;

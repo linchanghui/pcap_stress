@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(pacp_stress)
 
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -std=c11")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -std=c11 -g")
 set(SOURCE_FILES sds.c sds.h sdsalloc.h main.c main.h)
 set(SOURCE_FILES_TEST test.c)
 
@@ -12,3 +12,6 @@ target_link_libraries(pcap_stress
         pcre)
 
 add_executable(test1 ${SOURCE_FILES_TEST})
+
+target_link_libraries(test1
+        crypt)
